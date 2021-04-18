@@ -1,19 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import './interfaces/ICoin.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract Coin is ICoin{
-    mapping (address => uint) override public balances;
-
-    constructor (uint initialBalance) {
-        balances[tx.origin] = initialBalance; 
+contract Coin is ERC20 {
+    constructor(uint256 initialSupply) ERC20("Coin", "C") {
+        _mint(msg.sender, initialSupply);
     }
-
-    function sendToken(address receiver, uint amount) override public returns (bool successful) {
-		if (balances[tx.origin] < amount) return false;
-		balances[tx.origin] -= amount;
-		balances[receiver] += amount;
-		return false;
-	}
 }
