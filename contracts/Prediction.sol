@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "./Interfaces/ICoin.sol";
 
 contract Prediction is ERC1155("k") {
-    address coin; 
+    address coin;
+    bytes32 identifier;  
     uint amount;
     constructor (address _coin) {
         coin = _coin; 
