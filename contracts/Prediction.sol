@@ -17,7 +17,8 @@ contract Prediction is ERC1155("FREE") {
     //maps from pool to items in pool C, R, k
     mapping(uint => uint[3]) contents;
 
-    uint112 public b;
+    uint public b;
+    uint public mints; 
 
     uint112[2] initialRatioNumerator;
     uint112 initialRatioDenominator;
@@ -48,7 +49,8 @@ contract Prediction is ERC1155("FREE") {
             amounts,
             ""
         );
-        b += uint112(_amount); 
+        b = b.add(_amount); 
+        mints = mints.add(_amount); 
     }
 
     function sellSet(uint _amount) public {
@@ -66,7 +68,8 @@ contract Prediction is ERC1155("FREE") {
             amounts
         );
         require(IERC20(coin).transfer(msg.sender, _amount), "could not transfer collateral tokens");
-        b -= uint112(_amount); 
+        b = b.sub(_amount); 
+        mints = mints.sub(_amount);  
     }
 
     function getState(uint _id) public view returns (uint _contractAmount, uint _reserveAmount) {
@@ -95,16 +98,16 @@ contract Prediction is ERC1155("FREE") {
         uint reserveIn = getReserveIn(_amount, contents[_id][0], contents[_id][1]);
         require(IERC20(coin).transferFrom(msg.sender, address(this), reserveIn), "unable to receive reserve");
         _mint(msg.sender, _id, _amount, "");
-        contents[_id][0] -= _amount; 
-        contents[_id][1] += reserveIn; 
+        contents[_id][0] = contents[_id][0].sub(_amount); 
+        contents[_id][1] = contents[_id][1].add(reserveIn); 
     }
 
     function _sellRaw(uint _amount, uint _id) private {
         uint reserveOut = getReserveOut(_amount, contents[_id][0], contents[_id][1]);
         _burn(msg.sender, _id, _amount); 
         require(IERC20(coin).transfer(msg.sender, reserveOut), "could not transfer reserve");
-        contents[_id][0] += _amount; 
-        contents[_id][1] -= reserveOut; 
+        contents[_id][0] = contents[_id][0].add(_amount); 
+        contents[_id][1] = contents[_id][1].sub(reserveOut); 
     }
 
     function buyContract(uint _amount, uint _id) public {
@@ -119,21 +122,30 @@ contract Prediction is ERC1155("FREE") {
         require(IERC20(coin).transferFrom(msg.sender, address(this), _amount), "unable to receive reserve");
         if (initialRatioDenominator != 0) {
             for (uint i = 0; i < uint(2); ++i) {
-                contents[i+1][0] += _amount;
-                contents[i+1][1] += _amount.mul(initialRatioNumerator[i]) / initialRatioDenominator;
+                contents[i+1][0] = contents[i+1][0].add(_amount);
+                contents[i+1][1] = contents[i+1][1].add(_amount.mul(initialRatioNumerator[i]) / initialRatioDenominator);
             }
             initialRatioDenominator = 0; 
         } else {
             for (uint i = 0; i < uint(2); ++i) {
-                contents[i+1][0] += _amount;
+                contents[i+1][0] = contents[i+1][0].add(_amount);
             }
         }
         _mint(msg.sender, 0, _amount, "");
+        mints = mints.add(_amount); 
     }
 
-    // function removeLiquidity(uint _amount) public {
-
-    // }
+    function removeLiquidity(uint _amount) public {
+        require(balanceOf(msg.sender, 0) > 0, "not enough liquidity tokens to redeem");
+        for (uint i = 0; i < uint(2); ++i) {
+            contents[i+1][0] = contents[i+1][0].mul(mints.sub(_amount) / mints);
+            contents[i+1][1] = contents[i+1][1].mul(mints.sub(_amount) / mints);
+        }
+        b = b.mul(mints.sub(_amount) / mints); 
+        require(IERC20(coin).transfer(msg.sender, _amount), "could not transfer collateral tokens");
+        _burn(msg.sender, 0, _amount); 
+        mints = mints.sub(_amount); 
+    }
 
     function validate(uint _id) public {
         require(msg.sender == oracle, "Non-oracle called validate");
@@ -141,6 +153,6 @@ contract Prediction is ERC1155("FREE") {
     }
 
     // function redeem(uint _amount, uint _id) public {
-
+    //     require(_id == winner)
     // }
 }
