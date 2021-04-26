@@ -12,6 +12,7 @@ contract("Both", accounts => {
     const bn100c = web3.utils.toBN('100000000000000000000')
     const bn20c = web3.utils.toBN('20000000000000000000')
     const bn10c = web3.utils.toBN('10000000000000000000')
+    const bn5c = web3.utils.toBN('5000000000000000000')
     const bn2c = web3.utils.toBN('2000000000000000000')
     const bn1c = web3.utils.toBN('1000000000000000000')
     const bn1 = web3.utils.toBN('1')
@@ -71,8 +72,8 @@ contract("Both", accounts => {
         })
     })
 
-    describe("provide liquidity", () => {
-        it("provides liquidity to an empty set", async () => {
+    describe("add liquidity", () => {
+        it("adds liquidity to an empty set", async () => {
             await predictionInstance.addLiquidity(bn20c.toString())
             expect(await predictionInstance.balanceOf(accounts[0], 0)).to.eql(bn20c)
             expect(await coinInstance.balanceOf(predictionInstance.address)).to.eql(bn20c)
@@ -83,7 +84,41 @@ contract("Both", accounts => {
             expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
             expect(await predictionInstance.b()).to.eql(bn0)
         })
+
+        it("adds liquidity to a existing set", async () => {
+
+        })
     })
+
+    describe("remove liquidity", () => {
+        it("adds then removes liquidity", async () => {
+            await predictionInstance.addLiquidity(bn20c.toString())
+            await predictionInstance.removeLiquidity(bn20c.toString())
+            expect(await predictionInstance.balanceOf(accounts[0], 0)).to.eql(bn0)
+            expect(await coinInstance.balanceOf(predictionInstance.address)).to.eql(bn0)
+            assert.equal(await coinInstance.balanceOf(accounts[0]), bn100c.toString())
+            expect((await predictionInstance.getState(1))[0]).to.eql(bn0)
+            expect((await predictionInstance.getState(2))[0]).to.eql(bn0)
+            expect((await predictionInstance.getState(1))[1]).to.eql(bn0)
+            expect((await predictionInstance.getState(2))[1]).to.eql(bn0)
+            expect(await predictionInstance.b()).to.eql(bn0)
+        })
+
+        it("adds then removes partial liquidity", async () => {
+            await predictionInstance.addLiquidity(bn20c.toString())
+            await predictionInstance.removeLiquidity(bn10c.toString())
+            expect(await predictionInstance.balanceOf(accounts[0], 0)).to.eql(bn10c)
+            expect(await coinInstance.balanceOf(predictionInstance.address)).to.eql(bn10c)
+            assert.equal(await coinInstance.balanceOf(accounts[0]), (bn100c.sub(bn10c)).toString())
+            expect((await predictionInstance.getState(1))[0]).to.eql(bn10c)
+            expect((await predictionInstance.getState(2))[0]).to.eql(bn10c)
+            expect((await predictionInstance.getState(1))[1]).to.eql(bn5c)
+            expect((await predictionInstance.getState(2))[1]).to.eql(bn5c)
+            expect(await predictionInstance.b()).to.eql(bn0)
+        })
+    })
+
+
 
     describe("buy contract", () => {
         beforeEach(async () => {
