@@ -127,50 +127,46 @@ contract("Both", accounts => {
         })
     })
 
+    // describe("buy contract", () => {
+    //     beforeEach(async () => {
+    //         await predictionInstance.addLiquidity(bn20c.toString())
+    //     })
+    //     it("buys two contract heads", async () => {
+    //         await predictionInstance.buyContract(bn2c.toString(), 1)
+    //         expect(await predictionInstance.balanceOf(accounts[0], 1)).to.eql(bn2c)
+    //         expect(await predictionInstance.balanceOf(accounts[0], 2)).to.eql(bn0)
+    //         assert.equal((await predictionInstance.getState(1))[0].toString(), (bn20c.sub(bn2c)).toString())
+    //         const num = bn10c.mul(bn2c)
+    //         const denom = bn20c.sub(bn2c)
+    //         const px = (num.div(denom)).add(bn1)
+    //         assert.equal((await coinInstance.balanceOf(predictionInstance.address)).toString(), (bn20c.add(px)).toString())
+    //         assert.equal((await coinInstance.balanceOf(accounts[0])).toString(), (bn100c.sub(bn20c).sub(px)).toString())
+    //         assert.equal((await predictionInstance.getState(1))[1].toString(), (bn10c.add(px)).toString())
+    //         expect((await predictionInstance.getState(2))[0]).to.eql(bn20c)
+    //         expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
+    //         expect(await predictionInstance.b()).to.eql(bn0)
+    //     })
+    // })
 
-
-    describe("buy contract", () => {
-        beforeEach(async () => {
-            await predictionInstance.addLiquidity(bn20c.toString())
-        })
-        it("buys two contract heads", async () => {
-            await predictionInstance.buyContract(bn2c.toString(), 1)
-            expect(await predictionInstance.balanceOf(accounts[0], 1)).to.eql(bn2c)
-            expect(await predictionInstance.balanceOf(accounts[0], 2)).to.eql(bn0)
-            assert.equal((await predictionInstance.getState(1))[0].toString(), (bn20c.sub(bn2c)).toString())
-            const num = bn10c.mul(bn2c)
-            const denom = bn20c.sub(bn2c)
-            const px = (num.div(denom)).add(bn1)
-            assert.equal((await coinInstance.balanceOf(predictionInstance.address)).toString(), (bn20c.add(px)).toString())
-            assert.equal((await coinInstance.balanceOf(accounts[0])).toString(), (bn100c.sub(bn20c).sub(px)).toString())
-            assert.equal((await predictionInstance.getState(1))[1].toString(), (bn10c.add(px)).toString())
-            expect((await predictionInstance.getState(2))[0]).to.eql(bn20c)
-            expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
-            expect(await predictionInstance.b()).to.eql(bn0)
-        })
-    })
-
-    describe("sell contract", () => {
-        beforeEach(async () => {
-            await predictionInstance.addLiquidity(bn20c.toString())
-        })
-        it("buys two sets then sells two heads", async () => {
-            await predictionInstance.buySet(bn2c.toString())
-            await predictionInstance.sellContract(bn2c.toString(), 1)
-            expect(await predictionInstance.balanceOf(accounts[0], 1)).to.eql(bn0)
-            expect(await predictionInstance.balanceOf(accounts[0], 2)).to.eql(bn2c)
-            assert.equal((await predictionInstance.getState(1))[0].toString(), (bn20c.add(bn2c)).toString())
-            const num = bn10c.mul(bn2c)
-            const denom = bn20c.add(bn2c)
-            const px = num.div(denom)
-            assert.equal((await coinInstance.balanceOf(predictionInstance.address)).toString(), (bn20c.add(bn2c).sub(px)).toString())
-            assert.equal((await coinInstance.balanceOf(accounts[0])).toString(), (bn100c.sub(bn20c).sub(bn2c).add(px)).toString())
-            assert.equal((await predictionInstance.getState(1))[1].toString(), (bn10c.sub(px)).toString())
-            expect((await predictionInstance.getState(2))[0]).to.eql(bn20c)
-            expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
-            expect(await predictionInstance.b()).to.eql(bn2c)
-        })
-    })
-
-
+    // describe("sell contract", () => {
+    //     beforeEach(async () => {
+    //         await predictionInstance.addLiquidity(bn20c.toString())
+    //     })
+    //     it("buys two sets then sells two heads", async () => {
+    //         await predictionInstance.buySet(bn2c.toString())
+    //         await predictionInstance.sellContract(bn2c.toString(), 1)
+    //         expect(await predictionInstance.balanceOf(accounts[0], 1)).to.eql(bn0)
+    //         expect(await predictionInstance.balanceOf(accounts[0], 2)).to.eql(bn2c)
+    //         assert.equal((await predictionInstance.getState(1))[0].toString(), (bn20c.add(bn2c)).toString())
+    //         const num = bn10c.mul(bn2c)
+    //         const denom = bn20c.add(bn2c)
+    //         const px = num.div(denom)
+    //         assert.equal((await coinInstance.balanceOf(predictionInstance.address)).toString(), (bn20c.add(bn2c).sub(px)).toString())
+    //         assert.equal((await coinInstance.balanceOf(accounts[0])).toString(), (bn100c.sub(bn20c).sub(bn2c).add(px)).toString())
+    //         assert.equal((await predictionInstance.getState(1))[1].toString(), (bn10c.sub(px)).toString())
+    //         expect((await predictionInstance.getState(2))[0]).to.eql(bn20c)
+    //         expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
+    //         expect(await predictionInstance.b()).to.eql(bn2c)
+    //     })
+    // })
 })

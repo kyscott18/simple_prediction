@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/SafeMath.sol";
-import "./libraries/SafeMath112.sol";
-import "./libraries/UQ112x112.sol";
 import "./libraries/PredictionLibrary.sol"; 
 
 contract Prediction is ERC1155("FREE") {
@@ -14,12 +12,10 @@ contract Prediction is ERC1155("FREE") {
 
     address public coin;
     address public oracle; 
-
     bytes32 public identifier;
 
-    //maps from pool to items in pool C, R, k
+    //maps from pool to items in pool C, R
     mapping(uint => uint[2]) contents;
-
     uint public b;
     uint public mints; 
 
@@ -80,7 +76,6 @@ contract Prediction is ERC1155("FREE") {
     }
 
     function _buyRaw(uint _amount, uint _id) private {
-        require(_amount <= 2**112-1, "overflow"); 
         uint reserveIn = PredictionLibrary.getReserveIn(_amount, contents[_id][0], contents[_id][1]);
         require(IERC20(coin).transferFrom(msg.sender, address(this), reserveIn), "unable to receive reserve");
         _mint(msg.sender, _id, _amount, "");
@@ -89,7 +84,6 @@ contract Prediction is ERC1155("FREE") {
     }
 
     function _sellRaw(uint _amount, uint _id) private {
-        require(_amount <= 2**112-1, "overflow"); 
         uint reserveOut = PredictionLibrary.getReserveOut(_amount, contents[_id][0], contents[_id][1]);
         _burn(msg.sender, _id, _amount); 
         require(IERC20(coin).transfer(msg.sender, reserveOut), "could not transfer reserve");
@@ -97,12 +91,24 @@ contract Prediction is ERC1155("FREE") {
         contents[_id][1] = contents[_id][1].sub(reserveOut); 
     }
 
-    function buyContract(uint _amount, uint _id) public {
-        _buyRaw(_amount, _id);
+    // function buyContract(uint _amount, uint _id) public {
+    //     _buyRaw(_amount, _id);
+    // }
+
+    // function sellContract(uint _amount, uint _id) public {
+    //     _sellRaw(_amount, _id); 
+    // }
+
+    function buyContract(uint _amount, uint _id, uint _y) public {
+        //buy raw
+        //buy set
+        //sell set as raw
     }
 
-    function sellContract(uint _amount, uint _id) public {
-        _sellRaw(_amount, _id); 
+    function sellContract(uint _amount, uint _id, uint _y) public {
+        //sell raw
+        //buy set as raw
+        //sell set
     }
 
     function addLiquidity(uint _amount) public {
