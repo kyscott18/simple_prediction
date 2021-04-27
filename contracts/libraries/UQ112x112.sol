@@ -18,4 +18,9 @@ library UQ112x112 {
     function uqdiv(uint224 x, uint112 y) internal pure returns (uint224 z) {
         z = x / uint224(y);
     }
+
+    // decode a UQ112x112 to a uint112
+    function decode(uint224 y) internal pure returns (uint112 z) {
+        z = uint112(y / Q112);
+    }
 }

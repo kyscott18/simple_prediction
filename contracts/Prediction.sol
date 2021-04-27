@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeMath112.sol";
+import "./libraries/UQ112x112.sol";
+import "./libraries/PredictionLibrary.sol"; 
 
 contract Prediction is ERC1155("FREE") {
 
     using SafeMath for uint; 
-    using SafeMath112 for uint112; 
 
     address public coin;
     address public oracle; 
@@ -17,13 +18,13 @@ contract Prediction is ERC1155("FREE") {
     bytes32 public identifier;
 
     //maps from pool to items in pool C, R, k
-    mapping(uint => uint112[2]) contents;
+    mapping(uint => uint[2]) contents;
 
     uint public b;
     uint public mints; 
 
-    uint112[2] initialRatioNumerator;
-    uint112 initialRatioDenominator;
+    uint[2] initialRatioNumerator;
+    uint initialRatioDenominator;
 
     uint winner;
 
@@ -78,40 +79,22 @@ contract Prediction is ERC1155("FREE") {
         return (contents[_id][0], contents[_id][1]);
     }
 
-    //taken from uniswap
-    function getReserveIn(uint _contractOut, uint _contractAmount, uint _reserveAmount) private pure returns (uint _reserveIn) {
-        require(_contractOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
-        require(_reserveAmount > 0 && _contractAmount > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-        uint numerator = _reserveAmount.mul(_contractOut);
-        uint denominator = _contractAmount.sub(_contractOut);
-        _reserveIn = (numerator / denominator).add(1);
-    }
-
-    //taken from uniswap
-    function getReserveOut(uint _contractIn, uint _contractAmount, uint _reserveAmount) private pure returns (uint _reserveOut) {
-        require(_contractIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
-        require(_reserveAmount > 0 && _contractAmount > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-        uint numerator = _contractIn.mul(_reserveAmount);
-        uint denominator = _contractAmount.add(_contractIn);
-        _reserveOut = numerator / denominator;
-    }
-
     function _buyRaw(uint _amount, uint _id) private {
         require(_amount <= 2**112-1, "overflow"); 
-        uint reserveIn = getReserveIn(_amount, contents[_id][0], contents[_id][1]);
+        uint reserveIn = PredictionLibrary.getReserveIn(_amount, contents[_id][0], contents[_id][1]);
         require(IERC20(coin).transferFrom(msg.sender, address(this), reserveIn), "unable to receive reserve");
         _mint(msg.sender, _id, _amount, "");
-        contents[_id][0] = contents[_id][0].sub(uint112(_amount)); 
-        contents[_id][1] = contents[_id][1].add(uint112(reserveIn)); 
+        contents[_id][0] = contents[_id][0].sub(_amount); 
+        contents[_id][1] = contents[_id][1].add(reserveIn); 
     }
 
     function _sellRaw(uint _amount, uint _id) private {
         require(_amount <= 2**112-1, "overflow"); 
-        uint reserveOut = getReserveOut(_amount, contents[_id][0], contents[_id][1]);
+        uint reserveOut = PredictionLibrary.getReserveOut(_amount, contents[_id][0], contents[_id][1]);
         _burn(msg.sender, _id, _amount); 
         require(IERC20(coin).transfer(msg.sender, reserveOut), "could not transfer reserve");
-        contents[_id][0] = contents[_id][0].add(uint112(_amount)); 
-        contents[_id][1] = contents[_id][1].sub(uint112(reserveOut)); 
+        contents[_id][0] = contents[_id][0].add(_amount); 
+        contents[_id][1] = contents[_id][1].sub(reserveOut); 
     }
 
     function buyContract(uint _amount, uint _id) public {
@@ -123,18 +106,20 @@ contract Prediction is ERC1155("FREE") {
     }
 
     function addLiquidity(uint _amount) public {
-        require(_amount <= 2**112-1, "overflow"); 
-        require(IERC20(coin).transferFrom(msg.sender, address(this), _amount), "unable to receive reserve");
+        // require(_amount <= 2**112-1, "overflow"); 
+        require(IERC20(coin).transferFrom(msg.sender, address(this), uint(_amount)), "unable to receive reserve");
         if (initialRatioDenominator != 0) {
             for (uint i = 0; i < uint(2); ++i) {
-                contents[i+1][1] = contents[i+1][1].add(uint112(_amount.mul(initialRatioNumerator[i]) / initialRatioDenominator));
-                contents[i+1][0] = contents[i+1][0].add(uint112(_amount));
+                //TODO: adjust for fixed point decimals
+                contents[i+1][1] = contents[i+1][1].add(_amount.mul(initialRatioNumerator[i]) / initialRatioDenominator);
+                contents[i+1][0] = contents[i+1][0].add(_amount);
             }
             initialRatioDenominator = 0; 
         } else {
             for (uint i = 0; i < uint(2); ++i) {
-                contents[i+1][1] = contents[i+1][1].add(uint112(_amount.mul(contents[i+1][1] / contents[i+1][0])));
-                contents[i+1][0] = contents[i+1][0].add(uint112(_amount));
+                //TODO: adjust for fixed point decimals
+                contents[i+1][1] = contents[i+1][1].add(_amount.mul(contents[i+1][1]) / contents[i+1][0]);
+                contents[i+1][0] = contents[i+1][0].add(_amount);
             }
         }
         _mint(msg.sender, 0, _amount, "");
@@ -144,21 +129,21 @@ contract Prediction is ERC1155("FREE") {
     function removeLiquidity(uint _amount) public {
         require(balanceOf(msg.sender, 0) > 0, "not enough liquidity tokens to redeem");
         for (uint i = 0; i < uint(2); ++i) {
-            contents[i+1][0] = contents[i+1][0].mul(uint112(mints.sub(_amount) / mints));
-            contents[i+1][1] = contents[i+1][1].mul(uint112(mints.sub(_amount) / mints));
+            contents[i+1][0] = contents[i+1][0].mul(mints.sub(_amount)) / mints;
+            contents[i+1][1] = contents[i+1][1].mul(mints.sub(_amount)) / mints;
         }
-        b = b.mul(mints.sub(_amount) / mints); 
+        b = b.mul(mints.sub(_amount)) / mints; 
         require(IERC20(coin).transfer(msg.sender, _amount), "could not transfer collateral tokens");
         _burn(msg.sender, 0, _amount); 
         mints = mints.sub(_amount); 
     }
 
-    function validate(uint _id) public {
-        require(msg.sender == oracle, "Non-oracle called validate");
-        winner = _id; 
-    }
-
-    // function redeem(uint _amount, uint _id) public {
-    //     require(_id == winner)
+    // function validate(uint _id) public {
+    //     require(msg.sender == oracle, "Non-oracle called validate");
+    //     winner = _id; 
     // }
+
+    // // function redeem(uint _amount, uint _id) public {
+    // //     require(_id == winner)
+    // // }
 }

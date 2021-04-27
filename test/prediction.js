@@ -86,7 +86,16 @@ contract("Both", accounts => {
         })
 
         it("adds liquidity to a existing set", async () => {
-
+            await predictionInstance.addLiquidity(bn10c.toString())
+            await predictionInstance.addLiquidity(bn10c.toString())
+            expect(await predictionInstance.balanceOf(accounts[0], 0)).to.eql(bn20c)
+            expect(await coinInstance.balanceOf(predictionInstance.address)).to.eql(bn20c)
+            assert.equal(await coinInstance.balanceOf(accounts[0]), (bn100c.sub(bn20c)).toString())
+            expect((await predictionInstance.getState(1))[0]).to.eql(bn20c)
+            expect((await predictionInstance.getState(2))[0]).to.eql(bn20c)
+            expect((await predictionInstance.getState(1))[1]).to.eql(bn10c)
+            expect((await predictionInstance.getState(2))[1]).to.eql(bn10c)
+            expect(await predictionInstance.b()).to.eql(bn0)
         })
     })
 
