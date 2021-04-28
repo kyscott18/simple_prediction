@@ -79,14 +79,22 @@ contract Prediction is ERC1155("FREE") {
         uint reserveIn = PredictionLibrary.getReserveIn(_amount, contents[_id][0], contents[_id][1]);
         require(IERC20(coin).transferFrom(msg.sender, address(this), reserveIn), "unable to receive reserve");
         _mint(msg.sender, _id, _amount, "");
-        contents[_id][0] = contents[_id][0].sub(_amount); 
-        contents[_id][1] = contents[_id][1].add(reserveIn); 
+        _buyRawState(_amount, _id, reserveIn);
     }
 
     function _sellRaw(uint _amount, uint _id) private {
         uint reserveOut = PredictionLibrary.getReserveOut(_amount, contents[_id][0], contents[_id][1]);
         _burn(msg.sender, _id, _amount); 
         require(IERC20(coin).transfer(msg.sender, reserveOut), "could not transfer reserve");
+        _sellRawState(_amount, _id, reserveOut); 
+    }
+
+    function _buyRawState(uint _amount, uint _id, uint reserveIn) private {
+        contents[_id][0] = contents[_id][0].sub(_amount); 
+        contents[_id][1] = contents[_id][1].add(reserveIn); 
+    }
+
+    function _sellRawState(uint _amount, uint _id, uint reserveOut) private {
         contents[_id][0] = contents[_id][0].add(_amount); 
         contents[_id][1] = contents[_id][1].sub(reserveOut); 
     }
@@ -100,15 +108,46 @@ contract Prediction is ERC1155("FREE") {
     // }
 
     function buyContract(uint _amount, uint _id, uint _y) public {
+        uint kept; 
         //buy raw
-        //buy set
+        uint reserveIn = PredictionLibrary.getReserveIn(_amount, contents[_id][0], contents[_id][1]);
+        _buyRawState(_amount, _id, reserveIn);
+
         //sell set as raw
+        for (uint i = 0; i < uint(2); ++i) {
+            uint reserveOut = PredictionLibrary.getReserveOut(_y, contents[i+1][0], contents[i+1][1]); 
+            _sellRawState(_y, i+1, reserveOut);
+            kept = kept.add(reserveOut); 
+        }
+
+        kept = kept.sub(reserveIn); 
+
+        // mints = mints.add(_y); 
+        b = b.add(_y).add(kept); 
+
+        require(IERC20(coin).transferFrom(msg.sender, address(this), _y), "unable to receive reserve");
+        _mint(msg.sender, _id, _amount, "");
     }
 
     function sellContract(uint _amount, uint _id, uint _y) public {
+        uint kept; 
         //sell raw
+        uint reserveOut = PredictionLibrary.getReserveOut(_amount, contents[_id][0], contents[_id][1]);
+        _sellRawState(_amount, _id, reserveOut);
+        kept = kept.add(reserveOut); 
+
         //buy set as raw
-        //sell set
+        for (uint i = 0; i < uint(2); ++i) {
+            uint reserveIn = PredictionLibrary.getReserveIn(_y, contents[i+1][0], contents[i+1][1]); 
+            _buyRawState(_y, i+1, reserveIn);
+            kept = kept.sub(reserveIn); 
+        }
+
+        // mints = mints.sub(_y); 
+        b = b.sub(_y).add(kept); 
+
+        _burn(msg.sender, _id, _amount); 
+        require(IERC20(coin).transfer(msg.sender, _y), "could not transfer reserve");
     }
 
     function addLiquidity(uint _amount) public {
